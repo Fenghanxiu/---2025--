@@ -1,0 +1,129 @@
+C51 COMPILER V9.60.0.0   FILTER                                                            04/05/2025 13:11:54 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE FILTER
+OBJECT MODULE PLACED IN .\Objects\filter.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE filter.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\fi
+                    -lter.lst) OBJECT(.\Objects\filter.obj)
+
+line level    source
+
+   1          #include "filter.h"
+   2          
+   3          void swap(unsigned int *x,unsigned int *y)
+   4          {
+   5   1              unsigned int temp;
+   6   1              temp=*x;
+   7   1              *x=*y;
+   8   1              *x=temp;
+   9   1      }
+  10          
+  11          /* 只是一个很简陋的中值滤波，返回数据集的中位数，
+  12                   不过请注意，传入的数据只能是3个，不能多也不能少，
+  13                   虽然简陋，但是用在温度、超声波、adc、频率的读取，
+  14                   效果都是很稳定的，可以从软件层面上
+  15                   解决数据偶尔读取错误的问题 */
+  16          unsigned int median_filter(unsigned int *Data)
+  17          {
+  18   1              unsigned int temp;
+  19   1              
+  20   1              temp = MAX(*(Data + 0), *(Data + 1));
+  21   1              if (temp <= *(Data + 2))
+  22   1                      return temp;
+  23   1              else
+  24   1              {
+  25   2                      temp = MIN(*(Data + 0), *(Data + 1));
+  26   2                      return MAX(temp, *(Data + 2));
+  27   2              }
+  28   1      }
+  29          /* 只是一个简单的均值滤波，计算平均值 */
+  30          unsigned int average_filter(unsigned int *Data, unsigned int len)
+  31          {
+  32   1              unsigned long sum = 0;
+  33   1              unsigned int i;
+  34   1              
+  35   1              for (i = 0; i < len; i++)
+  36   1                      sum += *(Data + i);
+  37   1              
+  38   1              return sum / len;
+  39   1      }
+  40          
+  41          
+  42          //plus版本,根据数据量进行变动，实时更新
+  43          unsigned int med_filter(unsigned int *Data,unsigned int new_data)
+  44          {
+  45   1              static unsigned char  median_filter_count=0;
+  46   1              
+  47   1              unsigned char min_12=0;
+  48   1              unsigned char max_12=0;
+  49   1              
+  50   1              Data[2]=Data[1];
+  51   1              Data[1]=Data[0];
+  52   1              Data[0]=new_data;
+  53   1              
+  54   1              if(median_filter_count<3)median_filter_count++;
+C51 COMPILER V9.60.0.0   FILTER                                                            04/05/2025 13:11:54 PAGE 2   
+
+  55   1              //
+  56   1              min_12=MIN(Data[0],Data[1]);
+  57   1              max_12=MAX(Data[0],Data[1]);
+  58   1              
+  59   1              if(max_12<Data[2])
+  60   1              {
+  61   2                      return max_12;
+  62   2              }
+  63   1              else
+  64   1              {
+  65   2                      return min_12>Data[2]?min_12:Data[2];
+  66   2              }
+  67   1                      
+  68   1      }
+  69          
+  70          unsigned int ave_filter(unsigned int *Data,unsigned int new_data)
+  71          {
+  72   1              static unsigned char  ave_filter_count=0;
+  73   1              unsigned long sum = 0;
+  74   1              unsigned char i=0;
+  75   1              
+  76   1              Data[2]=Data[1];
+  77   1              Data[1]=Data[0];
+  78   1              Data[0]=new_data;
+  79   1              
+  80   1              if(ave_filter_count<3)ave_filter_count++;
+  81   1              
+  82   1              //
+  83   1              for (i = 0; i < ave_filter_count; i++) {
+  84   2              sum += Data[i];
+  85   2          }
+  86   1      
+  87   1          return (unsigned int)(sum /ave_filter_count);
+  88   1      }
+  89          
+  90          /* 简单的冒泡排序 */
+  91          void sort(unsigned int *Data, unsigned int len)
+  92          {
+  93   1              int i, j;
+  94   1              
+  95   1              for (i = 0; i < len; i++)
+  96   1              {
+  97   2                      for (j = i + 1; j < len; j++)
+  98   2                      {
+  99   3                              if (*(Data + i) > *(Data + j))
+ 100   3                                      swap((Data + i), (Data + j));
+ 101   3                      }
+ 102   2              }
+ 103   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    757    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      2      37
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

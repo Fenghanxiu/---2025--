@@ -1,0 +1,11 @@
+".\Objects\STARTUP.obj",
+".\Objects\main.obj",
+".\Objects\ds1302.obj",
+".\Objects\iic.obj",
+".\Objects\onewire.obj",
+".\Objects\hardware.obj",
+".\Objects\echo.obj",
+".\Objects\uart.obj",
+".\Objects\filter.obj" 
+TO ".\Objects\2025친경" 
+PRINT(".\Listings\2025친경.m51") RAMSIZE(256) 

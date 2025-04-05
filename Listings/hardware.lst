@@ -1,0 +1,446 @@
+C51 COMPILER V9.60.0.0   HARDWARE                                                          04/05/2025 13:11:54 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE HARDWARE
+OBJECT MODULE PLACED IN .\Objects\hardware.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE hardware.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\
+                    -hardware.lst) OBJECT(.\Objects\hardware.obj)
+
+line level    source
+
+   1          #include "hardware.h"
+   2          
+   3          //led
+   4          unsigned char xdata led_buf=0;
+   5          unsigned char xdata led_pwm_cnt=0;
+   6          unsigned char xdata led_pwm_duty=10;
+   7          unsigned char xdata led_pwm_period=10;
+   8          unsigned char xdata led_pwm_select=0x00;
+   9          void led_output()
+  10          {
+  11   1              P0=~led_buf;
+  12   1              P2|=0x80;
+  13   1              P2&=0x1f;
+  14   1      }
+  15          void led_pwm_output()
+  16          {
+  17   1              P0=~led_pwm_select;
+  18   1              P2|=0x80;
+  19   1              P2&=0x1f;
+  20   1      }
+  21          //hign_power
+  22          unsigned char xdata hign_power_buf=0;
+  23          unsigned char xdata relay_pwm_cnt=0;
+  24          unsigned char xdata relay_pwm_duty=10;
+  25          unsigned char xdata relay_pwm_period=10;
+  26          void hign_power_output()
+  27          {
+  28   1              P0=hign_power_buf;
+  29   1              P2|=0xa0;
+  30   1              P2&=0x1f;
+  31   1      }
+  32          
+  33          //digs
+  34          /*************  本地常量声明    **************/
+  35          unsigned char code t_display[]={                       //标准字库
+  36          //   0    1    2    3    4    5    6    7    8    9    A    B    C    D    E    F
+  37              0x3F,0x06,0x5B,0x4F,0x66,0x6D,0x7D,0x07,0x7F,0x6F,0x77,0x7C,0x39,0x5E,0x79,0x71,
+  38          //black  -     H    J    K    L    N    o   P    U     t    G    Q    r   M    y
+  39              0x00,0x40,0x76,0x1E,0x70,0x38,0x37,0x5C,0x73,0x3E,0x78,0x3d,0x67,0x50,0x37,0x6e,
+  40              0xBF,0x86,0xDB,0xCF,0xE6,0xED,0xFD,0x87,0xFF,0xEF,0x46};    //0. 1. 2. 3. 4. 5. 6. 7. 8. 9. -1
+  41          
+  42          unsigned char code T_COM[]={0x01,0x02,0x04,0x08,0x10,0x20,0x40,0x80};      //位码
+  43          
+  44          unsigned char xdata digs_buf[][8]=
+  45          {
+  46                  {16,16,17,16,16,17,16,16,},//时间
+  47                  {12,16,16,16,17,16,16,16,},//回显温度
+  48                  {18,16,16,16,17,16,16,16,},//湿度回显
+  49                  {15,16,16,16,16,17,16,16,},//时间回显
+  50                  {24,16,16,16,16,16,16,16,},//参数界面
+  51                  {14,16,16,16,16,16,16,16,},//湿温度界面
+  52                  {1,16,16,16,16,16,16,16,},//掉电次数与触发时间
+  53                  {2,16,16,16,16,16,16,16,},//超声波测试
+  54                  {3,16,16,16,17,16,16,16,},//串口解析
+C51 COMPILER V9.60.0.0   HARDWARE                                                          04/05/2025 13:11:54 PAGE 2   
+
+  55                  {4,16,16,16,17,16,16,16,},//dac/adc测试
+  56          };
+  57          
+  58          unsigned char xdata *dig_buf=digs_buf[0];
+  59          unsigned char xdata dig_com=0x00;
+  60          unsigned char xdata dig_blink=0xff;
+  61          
+  62          
+  63          void digs_output()
+  64          {
+  65   1              P0=0x00;
+  66   1              P2|=0xc0;
+  67   1              P2&=0x1f;
+  68   1              
+  69   1              P0=~t_display[dig_buf[dig_com]];
+  70   1              P2|=0xe0;
+  71   1              P2&=0x1f;
+  72   1              
+  73   1              P0=T_COM[dig_com]&dig_blink;
+  74   1              P2|=0xc0;
+  75   1              P2&=0x1f;
+  76   1              
+  77   1              if(++dig_com>=8)dig_com=0;
+  78   1      }
+  79          
+  80          //key
+  81          
+  82          unsigned char code key_pad_values[4][4]=
+  83          {
+  84                  {7,11,15,19},
+  85                  {6,10,14,18},
+  86                  {5,9,13,17},
+  87                  {4,8,12,16},
+  88          };
+  89          unsigned char xdata key_value=0;
+  90          unsigned char xdata key_state=0;
+  91          
+  92          void key_pad_scan()
+  93          {
+  94   1              unsigned char r=255,c=255;
+  95   1              
+  96   1              //P30=1;
+  97   1              //P31=1;
+  98   1              P32=1;
+  99   1              P33=1;
+ 100   1              
+ 101   1              P44=0;
+ 102   1              P42=0;
+ 103   1              P35=0;
+ 104   1              //P34=0;
+ 105   1              
+ 106   1              if(~P3&0x0f)
+ 107   1              {
+ 108   2                      //if(!P30)r=0;
+ 109   2                      //if(!P31)r=1;
+ 110   2                      if(!P32)r=2;
+ 111   2                      if(!P33)r=3;
+ 112   2                      
+ 113   2                      //P30=0;
+ 114   2                      //P31=0;
+ 115   2                      P32=0;
+ 116   2                      P33=0;
+C51 COMPILER V9.60.0.0   HARDWARE                                                          04/05/2025 13:11:54 PAGE 3   
+
+ 117   2                      
+ 118   2                      P44=1;
+ 119   2                      P42=1;
+ 120   2                      P35=1;
+ 121   2                      //P34=1;
+ 122   2                      
+ 123   2                      if(!P44)c=0;
+ 124   2                      if(!P42)c=1;
+ 125   2                      if(!P35)c=2;
+ 126   2                      //if(!P34)c=3;
+ 127   2                      
+ 128   2                      
+ 129   2                      
+ 130   2                      if(r!=255&&c!=255)
+ 131   2                      {
+ 132   3                              key_value=key_pad_values[r][c];
+ 133   3                      }
+ 134   2                      else
+ 135   2                      {
+ 136   3                              key_value=0;key_state=0;
+ 137   3                      }
+ 138   2                      //
+ 139   2                      if(key_state<250)key_state++;
+ 140   2              }
+ 141   1              else
+ 142   1              {
+ 143   2                      if(key_value&&key_state <= 250)
+ 144   2                      {
+ 145   3                              if (key_state < 100) //若按下到松手时间没有超过1秒
+ 146   3                                      key_state = 255;
+ 147   3                              else if (key_state < 200) //若按下到松手时间超过1秒而没超过2秒
+ 148   3                                      key_state = 254;
+ 149   3                              else //若按下到松手时间超过2秒
+ 150   3                                      key_state = 253;
+ 151   3                      }
+ 152   2                      else
+ 153   2                      {
+ 154   3                              key_value=0;key_state=0;
+ 155   3                      }
+ 156   2              }
+ 157   1              
+ 158   1      }
+ 159          
+ 160          void key_pad_scan2()
+ 161          {
+ 162   1              unsigned char row=255,column=255;
+ 163   1              #ifndef USE_UART //有关这些#if的内容在main.h里可以找到
+ 164   1              P30 = 1; //第1行
+ 165   1              P31 = 1; //第2行
+ 166   1              #endif //USE_UART
+ 167   1              P32 = 1; //第3行
+ 168   1              P33 = 1; //第4行
+ 169   1              
+ 170   1              P44 = 0; //第1列
+ 171   1              #ifndef MM_MODE
+ 172   1              P42 = 0; //第2列
+ 173   1              #endif //MM_MODE
+ 174   1              P35 = 0; //第3列
+ 175   1              #ifndef USE_NE555
+ 176   1              P34 = 0; //第4列
+ 177   1              #endif //USE_NE555
+ 178   1              if(~P3&0x0f)
+C51 COMPILER V9.60.0.0   HARDWARE                                                          04/05/2025 13:11:54 PAGE 4   
+
+ 179   1              {
+ 180   2                      /* 按键键值判断 */
+ 181   2                      if (!P30) row = 0;
+ 182   2                      if (!P31) row = 1;
+ 183   2                      if (!P32) row = 2;
+ 184   2                      if (!P33) row = 3;
+ 185   2                      
+ 186   2                      P3 = 0xF0;
+ 187   2                      P4 = 0xFF;
+ 188   2                      
+ 189   2      
+ 190   2                      P30 = 0; //第1行
+ 191   2                      P31 = 0; //第2行
+ 192   2                      P32 = 0; //第3行
+ 193   2                      P33 = 0; //第4行
+ 194   2                      
+ 195   2                      P44 = 1; //第1列
+ 196   2                      P42 = 1; //第2列
+ 197   2                      P35 = 1; //第3列
+ 198   2      #ifndef USE_NE555
+ 199   2                      P34 = 1; //第4列
+ 200   2      #endif //USE_NE555
+ 201   2                      if (!P34) column = 3;
+ 202   2                      if (!P35) column = 2;
+ 203   2                      if (!P42) column = 1;
+ 204   2                      if (!P44) column = 0;
+ 205   2                      
+ 206   2                                      /* 键值判断 */
+ 207   2                      if (row != 255 && column != 255) //如果按键有效
+ 208   2                      {
+ 209   3                              key_value = key_pad_values[row][column];
+ 210   3                      }
+ 211   2                      
+ 212   2                      /* 按键计时 */
+ 213   2                      if (key_state < 250)
+ 214   2                              key_state++;
+ 215   2              }
+ 216   1              else
+ 217   1              {
+ 218   2                      if (key_value && key_state <= 250) //如果按键刚松开
+ 219   2                      {
+ 220   3                              if (key_state < 100) //若按下到松手时间没有超过1秒
+ 221   3                                      key_state = 255;
+ 222   3                              else if (key_state < 200) //若按下到松手时间超过1秒而没超过2秒
+ 223   3                                      key_state = 254;
+ 224   3                              else //若按下到松手时间超过2秒
+ 225   3                                      key_state = 253;
+ 226   3                      }
+ 227   2                      else //按键完全松开
+ 228   2                      {
+ 229   3                              key_value = 0;
+ 230   3                              key_state = 0;
+ 231   3                      }
+ 232   2              }
+ 233   1      }
+ 234          //独立按键，基本上和矩阵思路一样，只不过只需要扫描一次
+ 235          void key_scan()
+ 236          {
+ 237   1              unsigned char c=255;
+ 238   1              
+ 239   1              P30=1;
+ 240   1              P31=1;
+C51 COMPILER V9.60.0.0   HARDWARE                                                          04/05/2025 13:11:54 PAGE 5   
+
+ 241   1              P32=1;
+ 242   1              P33=1;
+ 243   1              
+ 244   1              if(~P3&0x0f)
+ 245   1              {
+ 246   2                      if(!P30)c=7;
+ 247   2                      if(!P31)c=6;
+ 248   2                      if(!P32)c=5;
+ 249   2                      if(!P33)c=4;
+ 250   2                      
+ 251   2                      if(c!=255)
+ 252   2                      {
+ 253   3                              key_value=c;
+ 254   3                      }
+ 255   2                      else
+ 256   2                      {
+ 257   3                              key_value=0;key_state=0;
+ 258   3                      }
+ 259   2                      
+ 260   2                      if(key_state<250)key_state++;
+ 261   2              }
+ 262   1              else
+ 263   1              {
+ 264   2                      if(key_value&&key_state<=250)
+ 265   2                      {
+ 266   3                              if(key_state>100)
+ 267   3                              {
+ 268   4                                      key_state=255;
+ 269   4                              }
+ 270   3                              else
+ 271   3                              {
+ 272   4                                      key_state=254;
+ 273   4                              }
+ 274   3                      }
+ 275   2                      else
+ 276   2                      {
+ 277   3                              key_value=0;key_state=0;
+ 278   3                      }
+ 279   2              }
+ 280   1      }
+ 281          //ne555
+ 282          unsigned int xdata freq=0;
+ 283          unsigned int xdata freq_cnt=0;
+ 284          
+ 285          void Timer0Init(void)           //100微秒@12.000MHz
+ 286          {
+ 287   1              AUXR |= 0x80;           //定时器时钟1T模式
+ 288   1              TMOD &= 0xF0;           //设置定时器模式
+ 289   1              TMOD |= 0x04;           //设置定时器模式
+ 290   1              TL0 = 0x00;             //设置定时初始值
+ 291   1              TH0 = 0x00;             //设置定时初始值
+ 292   1              TF0 = 0;                //清除TF0标志
+ 293   1              TR0 = 1;                //定时器0开始计时
+ 294   1              EA=1;
+ 295   1              ET0=1;
+ 296   1      }
+ 297          
+ 298          //time
+ 299          void Timer1Init(void)           //100微秒@12.000MHz
+ 300          {
+ 301   1              AUXR |= 0x40;           //定时器时钟1T模式
+ 302   1              TMOD &= 0x0F;           //设置定时器模式
+C51 COMPILER V9.60.0.0   HARDWARE                                                          04/05/2025 13:11:54 PAGE 6   
+
+ 303   1              TL1 = 0x50;             //设置定时初始值
+ 304   1              TH1 = 0xFB;             //设置定时初始值
+ 305   1              TF1 = 0;                //清除TF1标志
+ 306   1              TR1 = 1;                //定时器1开始计时
+ 307   1              EA=1;
+ 308   1              ET1=1;
+ 309   1      }
+ 310          //void Timer1Init(void)         //1毫秒@12.000MHz
+ 311          //{
+ 312          //      AUXR |= 0x40;           //定时器时钟1T模式
+ 313          //      TMOD &= 0x0F;           //设置定时器模式
+ 314          //      TL1 = 0x20;             //设置定时初始值
+ 315          //      TH1 = 0xD1;             //设置定时初始值
+ 316          //      TF1 = 0;                //清除TF1标志
+ 317          //      TR1 = 1;                //定时器1开始计时
+ 318          //      EA=1;
+ 319          //      ET1=1;
+ 320          //}
+ 321          
+ 322          
+ 323          unsigned int xdata timer_1ms=0;
+ 324          unsigned int xdata timer_10ms=0;
+ 325          unsigned int xdata timer_50ms=0;
+ 326          unsigned int xdata timer_100ms=0;
+ 327          unsigned int xdata timer_3000ms=0;
+ 328          unsigned char xdata timer_3000ms_start=0;
+ 329          void Timer1(void) interrupt 3
+ 330          {
+ 331   1              timer_1ms++;
+ 332   1              
+ 333   1              
+ 334   1              if (led_pwm_cnt < led_pwm_duty) //有效电平
+ 335   1              {
+ 336   2                      led_buf|=0x80;
+ 337   2              }
+ 338   1              else
+ 339   1              {
+ 340   2                      led_buf&=~0x80;
+ 341   2              }
+ 342   1              led_output();
+ 343   1              
+ 344   1              if(++led_pwm_cnt>=led_pwm_period)led_pwm_cnt=0;
+ 345   1              //
+ 346   1              if (relay_pwm_cnt < relay_pwm_duty) //有效电平
+ 347   1              {
+ 348   2                      hign_power_buf|=0x20;
+ 349   2              }
+ 350   1              else
+ 351   1              {
+ 352   2                      hign_power_buf&=~0x20;
+ 353   2              }
+ 354   1              hign_power_output();
+ 355   1              
+ 356   1              if(++relay_pwm_cnt>=relay_pwm_period)relay_pwm_cnt=0;
+ 357   1              if(timer_1ms>=10)
+ 358   1              {
+ 359   2                      timer_1ms=0;
+ 360   2                      
+ 361   2                      timer_10ms++;
+ 362   2                      timer_50ms++;
+ 363   2                      timer_100ms++;
+ 364   2                      
+C51 COMPILER V9.60.0.0   HARDWARE                                                          04/05/2025 13:11:54 PAGE 7   
+
+ 365   2                      if(timer_3000ms_start==1)timer_3000ms++;
+ 366   2                      freq_cnt++;
+ 367   2                      
+ 368   2                      led_output();
+ 369   2                      hign_power_output();
+ 370   2                      digs_output();
+ 371   2                      if(freq_cnt>=100)
+ 372   2                      {
+ 373   3                              freq_cnt=0;
+ 374   3                              TR0=0;
+ 375   3                              freq=(unsigned int)(TH0<<8|TL0)*10;
+ 376   3                              TH0=0;
+ 377   3                              TL0=0;
+ 378   3                              TR0=1;
+ 379   3                      }
+ 380   2              }
+ 381   1      }
+ 382          
+ 383          //void Timer1(void) interrupt 3
+ 384          //{
+ 385          
+ 386          //      timer_1ms=0;
+ 387          //      
+ 388          //      timer_10ms++;
+ 389          //      timer_50ms++;
+ 390          //      timer_100ms++;
+ 391          //      
+ 392          //      if(timer_3000ms_start==1)timer_3000ms++;
+ 393          //      freq_cnt++;
+ 394          //      
+ 395          //      led_output();
+ 396          //      hign_power_output();
+ 397          //      digs_output();
+ 398          //      if(freq_cnt>=100)
+ 399          //      {
+ 400          //              freq_cnt=0;
+ 401          //              TR0=0;
+ 402          //              freq=(unsigned int)(TH0<<8|TL0)*10;
+ 403          //              TH0=0;
+ 404          //              TL0=0;
+ 405          //              TR0=1;
+ 406          //      }
+ 407          
+ 408          //}
+ 409          
+ 410          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    980    ----
+   CONSTANT SIZE    =     67    ----
+   XDATA SIZE       =    108    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      2    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

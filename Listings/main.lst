@@ -1,0 +1,518 @@
+C51 COMPILER V9.60.0.0   MAIN                                                              04/05/2025 13:11:53 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\main
+                    -.lst) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include "main.h"
+   2          
+   3          
+   4          void Delay700ms()               //@12.000MHz
+   5          {
+   6   1              unsigned char i, j, k;
+   7   1      
+   8   1              _nop_();
+   9   1              _nop_();
+  10   1              i = 32;
+  11   1              j = 236;
+  12   1              k = 16;
+  13   1              do
+  14   1              {
+  15   2                      do
+  16   2                      {
+  17   3                              while (--k);
+  18   3                      } while (--j);
+  19   2              } while (--i);
+  20   1      }
+  21          void Delay5ms()         //@12.000MHz
+  22          {
+  23   1              unsigned char i, j;
+  24   1      
+  25   1              i = 59;
+  26   1              j = 90;
+  27   1              do
+  28   1              {
+  29   2                      while (--j);
+  30   2              } while (--i);
+  31   1      }
+  32          
+  33          void main()
+  34          {
+  35   1              unsigned char xdata screen=0;
+  36   1              unsigned char xdata screen_huixian=0;
+  37   1              
+  38   1              unsigned char xdata work_flag=0;
+  39   1              
+  40   1              int xdata temp_param=30;
+  41   1              int xdata trig_count=0;
+  42   1              unsigned char xdata trig_250ms_count=0;
+  43   1              unsigned char xdata trig_250ms_count_last=0;
+  44   1              unsigned int xdata shidu=0;
+  45   1              unsigned int xdata shidu_max=0;
+  46   1              unsigned long int xdata temperature_int_avg=0;
+  47   1              unsigned long int xdata temperature_int_all=0;
+  48   1              unsigned long int xdata shidu_avg=0;
+  49   1              unsigned long int xdata shidu_all=0;
+  50   1              unsigned int xdata temperature_int_last=0;
+  51   1              unsigned int xdata shidu_last=0;
+  52   1              
+  53   1              unsigned char xdata adc_read_level=0;
+  54   1              unsigned char xdata adc_read_level_pin0=0;
+C51 COMPILER V9.60.0.0   MAIN                                                              04/05/2025 13:11:53 PAGE 2   
+
+  55   1              unsigned char xdata adc_read_level_pin3=0;
+  56   1              
+  57   1              bit light_state_now=0;
+  58   1              bit light_state_before=0;
+  59   1              unsigned char xdata time_trig[3]={0,0,0};
+  60   1              unsigned char xdata time_trig_clear[3]={0,0,0};
+  61   1              
+  62   1              bit led_blink=0;
+  63   1              
+  64   1              unsigned char xdata diaodian_count=0;
+  65   1              unsigned char xdata diaodian_flag=0;
+  66   1              
+  67   1              rend_temp();
+  68   1              Delay700ms();
+  69   1              rend_temp();
+  70   1              Timer0Init();
+  71   1              Timer1Init();
+  72   1              PCAInit();
+  73   1              UartInit();
+  74   1              //TimerPCAInit();
+  75   1              write_ds1302();
+  76   1              //µôµçÍ³¼Æ
+  77   1              e2prom_read(0xa0,&diaodian_flag,1);Delay5ms();
+  78   1              if(diaodian_flag==0xbb)
+  79   1              {
+  80   2                      e2prom_read(0xa1,&diaodian_count,1);Delay5ms();
+  81   2                      diaodian_count++;
+  82   2                      e2prom_write(0xa1,&diaodian_count,1);Delay5ms();
+  83   2              }
+  84   1              else
+  85   1              {
+  86   2                      diaodian_count=0;
+  87   2                      diaodian_flag=0xbb;
+  88   2                      e2prom_write(0xa0,&diaodian_flag,1);Delay5ms();
+  89   2                      e2prom_write(0xa1,&diaodian_count,1);Delay5ms();
+  90   2              }
+  91   1              while(1)
+  92   1              {
+  93   2                      if(timer_10ms>=10)
+  94   2                      {
+  95   3                              timer_10ms=0;
+  96   3                              //input
+  97   3                              key_pad_scan();
+  98   3                              //process
+  99   3                              //hign
+ 100   3                              if(timer_50ms>=30)
+ 101   3                              {
+ 102   4                                      timer_50ms=0;
+ 103   4                                      
+ 104   4                                      if(work_flag==0)
+ 105   4                                      {
+ 106   5                                              read_ds1302();
+ 107   5                                      }
+ 108   4                                      else if(work_flag==1)
+ 109   4                                      {
+ 110   5                                              rend_temp();
+ 111   5                                              temperature_int=temperature_int/10;
+ 112   5                                              temperature_int=temperature_int*10;
+ 113   5                                      }
+ 114   4                                      else if(work_flag==2)
+ 115   4                                      {
+ 116   5                                              light_state_before=light_state_now;
+C51 COMPILER V9.60.0.0   MAIN                                                              04/05/2025 13:11:53 PAGE 3   
+
+ 117   5                                              adc_read_level=read_adc(0x01);
+ 118   5                                              if(adc_read_level>120)light_state_now=0;
+ 119   5                                              else light_state_now=1;
+ 120   5                                              
+ 121   5                                              if(light_state_before==0&&light_state_now==1&&timer_3000ms_start==0)
+ 122   5                                              {
+ 123   6                                                      
+ 124   6                                                      timer_3000ms_start=1;
+ 125   6                                                      
+ 126   6                                                      time_trig[0]=time_10[0];
+ 127   6                                                      time_trig[1]=time_10[1];
+ 128   6                                                      time_trig[2]=time_10[2];
+ 129   6                                                      
+ 130   6                                                      //
+ 131   6                                                      trig_250ms_count++;
+ 132   6                                      
+ 133   6                                                      if(freq>=200&&freq<=2000)
+ 134   6                                                      {
+ 135   7                                                              
+ 136   7                                                              shidu=(unsigned int)((freq-200)*20.0/45.0+100);
+ 137   7                                                              shidu=shidu/10;
+ 138   7                                                              shidu=shidu*10;
+ 139   7                                                              if(shidu_max<shidu)shidu_max=shidu;
+ 140   7                                                              shidu_all+=shidu;
+ 141   7                                                              
+ 142   7                                                              
+ 143   7                                                              led_buf&=~0x10;
+ 144   7                                                      }
+ 145   6                                                      else
+ 146   6                                                      {
+ 147   7                                                              shidu=0xff;
+ 148   7                                                              led_buf|=0x10;
+ 149   7                                                      }
+ 150   6                                                      
+ 151   6                                                      if(temperature_int_max<temperature_int)temperature_int_max=temperature_int;
+ 152   6                                                      temperature_int_all+=temperature_int;
+ 153   6                                                      
+ 154   6                                                      shidu_avg=shidu_all/trig_250ms_count;
+ 155   6                                                      temperature_int_avg=temperature_int_all/trig_250ms_count;
+ 156   6                                                      
+ 157   6                                                      
+ 158   6                                                      //
+ 159   6                                                      
+ 160   6                                                      
+ 161   6                                                      if(trig_250ms_count>=2)
+ 162   6                                                      {
+ 163   7                                                              if(temperature_int_last<temperature_int&&shidu_last<shidu)
+ 164   7                                                              {
+ 165   8                                                                      led_buf|=0x20;
+ 166   8                                                              }
+ 167   7                                                              else
+ 168   7                                                              {
+ 169   8                                                                      led_buf&=~0x20;
+ 170   8                                                              }
+ 171   7                                                      }
+ 172   6                                                      
+ 173   6                                                      if(freq>=200&&freq<=2000)shidu_last=shidu;
+ 174   6                                                      temperature_int_last=temperature_int;
+ 175   6                                                      trig_count++;
+ 176   6                                              }
+ 177   5                                      }
+ 178   4                                      else if(work_flag==3)
+C51 COMPILER V9.60.0.0   MAIN                                                              04/05/2025 13:11:53 PAGE 4   
+
+ 179   4                                      {
+ 180   5                                              //Get_distance();
+ 181   5                                              read_echo();
+ 182   5                                              //read_distance();
+ 183   5                                              write_adc(adc_read_level_pin0);
+ 184   5                                      }
+ 185   4                                      else if(work_flag==4)
+ 186   4                                      {
+ 187   5                                              e2prom_read(0x50,time_trig_clear,3);
+ 188   5                                      }
+ 189   4                                      else if(work_flag==5)
+ 190   4                                      {
+ 191   5                                              adc_read_level_pin3=read_adc(0x03);
+ 192   5                                              adc_read_level_pin0=adc_read_level_pin3;
+ 193   5                                              led_pwm_duty=(unsigned char)(adc_read_level_pin3*(led_pwm_period)/255.0);
+ 194   5                                              relay_pwm_duty=(unsigned char)(adc_read_level_pin3*(relay_pwm_period)/255.0);
+ 195   5                                      }
+ 196   4                                      else if(work_flag==6)
+ 197   4                                      {
+ 198   5                                              if(uart_proc_flag!=0)
+ 199   5                                              {
+ 200   6                                                      if(uart_proc_flag==1)
+ 201   6                                                      {
+ 202   7                                                              sprintf(uart_tx_buf,"x=%d,y=%d\r\n",(unsigned int)position_x,(unsigned int)position_y);
+ 203   7                                                              send_string(uart_tx_buf);
+ 204   7                                                              //memset(uart_tx_buf,0,sizeof(uart_tx_buf));
+ 205   7                                                              strcpy(uart_tx_buf,"");
+ 206   7                                                      }
+ 207   6                                                      else if(uart_proc_flag==2)
+ 208   6                                                      {
+ 209   7                                                              sprintf(uart_tx_buf,"screen=%d\r\n",(unsigned int)screen);
+ 210   7                                                              send_string(uart_tx_buf);
+ 211   7                                                              //memset(uart_tx_buf,0,sizeof(uart_tx_buf));
+ 212   7                                                              strcpy(uart_tx_buf,"");
+ 213   7                                                              
+ 214   7                                                      }
+ 215   6                                                      else if(uart_proc_flag==3)
+ 216   6                                                      {
+ 217   7                                                              sprintf(uart_tx_buf,"pwm=%d\r\n",(unsigned int)led_pwm_duty);
+ 218   7                                                              send_string(uart_tx_buf);
+ 219   7                                                              uart_tx_buf[0]=0;
+ 220   7                                                      }
+ 221   6                                                      else if(uart_proc_flag==999)
+ 222   6                                                      {
+ 223   7                                                              sprintf(uart_tx_buf,"erro=%d\r\n",(unsigned int)uart_error_flag);
+ 224   7                                                              send_string(uart_tx_buf);
+ 225   7                                                              uart_tx_buf[0]=0;
+ 226   7                                                              send_string(uart_rx_buf);
+ 227   7                                                              uart_error_flag=0;
+ 228   7                                                      }
+ 229   6                                                      
+ 230   6                                                      //
+ 231   6                                                      uart_proc_flag=0;
+ 232   6                                              }
+ 233   5                                      }
+ 234   4      
+ 235   4                                      if(++work_flag>=7)work_flag=0;
+ 236   4                              }
+ 237   3                              
+ 238   3                              //key
+ 239   3                              
+ 240   3                              if(key_state==255)
+C51 COMPILER V9.60.0.0   MAIN                                                              04/05/2025 13:11:53 PAGE 5   
+
+ 241   3                              {
+ 242   4                                      if(key_value==4)
+ 243   4                                      {
+ 244   5                                              if(++screen>=7)screen=0;
+ 245   5                                              if(screen==1)screen_huixian=0;
+ 246   5                                      }
+ 247   4                                      else if(key_value==5)
+ 248   4                                      {
+ 249   5                                              if(screen==1)
+ 250   5                                              {
+ 251   6                                                      if(++screen_huixian>=3)screen_huixian=0;
+ 252   6                                              }
+ 253   5                                      }
+ 254   4                                      else if(key_value==8)
+ 255   4                                      {
+ 256   5                                              if(screen==2)
+ 257   5                                              {
+ 258   6                                                      temp_param+=1;
+ 259   6                                                      if(temp_param>99)temp_param=99;
+ 260   6                                              }
+ 261   5                                      }
+ 262   4                                      else if(key_value==9)
+ 263   4                                      {
+ 264   5                                              if(screen==2)
+ 265   5                                              {
+ 266   6                                                      temp_param-=1;
+ 267   6                                                      if(temp_param<0)temp_param=0;
+ 268   6                                              }
+ 269   5                                      }
+ 270   4                              }
+ 271   3                              else if(key_state==253)
+ 272   3                              {
+ 273   4                                      if(key_value==9)
+ 274   4                                      {
+ 275   5                                              trig_count=0;
+ 276   5      
+ 277   5                                              shidu_avg=0;
+ 278   5                                              shidu_all=0;
+ 279   5                                              temperature_int_max=0;
+ 280   5                                              temperature_int_all=0;
+ 281   5                                              temperature_int_last=0;
+ 282   5                                              shidu_last=0;
+ 283   5                                              trig_250ms_count=0;
+ 284   5                                              
+ 285   5                                              
+ 286   5                                              e2prom_write(0x50,time_10,3);
+ 287   5                                      }
+ 288   4                                      else if(key_value==8)
+ 289   4                                      {
+ 290   5                                              diaodian_count=0;
+ 291   5                                              e2prom_write(0xa1,&diaodian_count,1);
+ 292   5                                      }
+ 293   4                              }
+ 294   3                              //proc
+ 295   3      
+ 296   3                              if(timer_3000ms>=3000)
+ 297   3                              {
+ 298   4                                      timer_3000ms=0;
+ 299   4                                      timer_3000ms_start=0;
+ 300   4                                      
+ 301   4                                      trig_250ms_count_last=trig_250ms_count;
+ 302   4                                      
+C51 COMPILER V9.60.0.0   MAIN                                                              04/05/2025 13:11:53 PAGE 6   
+
+ 303   4                              }
+ 304   3                              
+ 305   3                              
+ 306   3                              if(timer_100ms>=100)
+ 307   3                              {
+ 308   4                                      timer_100ms=0;
+ 309   4                                      led_blink=!led_blink;
+ 310   4                              }
+ 311   3                              
+ 312   3                              //output
+ 313   3                              //digs
+ 314   3                              if(screen==0)dig_buf=digs_buf[0];
+ 315   3                              if(screen==1&&screen_huixian==0)dig_buf=digs_buf[1];
+ 316   3                              if(screen==1&&screen_huixian==1)dig_buf=digs_buf[2];
+ 317   3                              if(screen==1&&screen_huixian==2)dig_buf=digs_buf[3];
+ 318   3                              if(screen==2)dig_buf=digs_buf[4];
+ 319   3                              if(screen==3)dig_buf=digs_buf[6];
+ 320   3                              if(screen==4)dig_buf=digs_buf[7];
+ 321   3                              if(screen==5)dig_buf=digs_buf[8];
+ 322   3                              if(screen==6)dig_buf=digs_buf[9];
+ 323   3                              if(timer_3000ms_start==1)dig_buf=digs_buf[5];
+ 324   3                              
+ 325   3                              if(screen==0&&trig_count%2==1&&timer_3000ms_start==0)
+ 326   3                              {
+ 327   4                                      if(led_blink)
+ 328   4                                              dig_blink|=~0x24;
+ 329   4                                      else 
+ 330   4                                              dig_blink&=0x24;
+ 331   4                              }
+ 332   3                              else
+ 333   3                              {
+ 334   4                                      dig_blink|=0xff;
+ 335   4                              }
+ 336   3                              digs_buf[0][0]=time_10[0]/10;
+ 337   3                              digs_buf[0][1]=time_10[0]%10;
+ 338   3                              digs_buf[0][3]=time_10[1]/10;
+ 339   3                              digs_buf[0][4]=time_10[1]%10;
+ 340   3                              digs_buf[0][6]=time_10[2]/10;
+ 341   3                              digs_buf[0][7]=time_10[2]%10;
+ 342   3                              
+ 343   3                              if(trig_count==0)
+ 344   3                              {
+ 345   4                                      digs_buf[1][2]=16;
+ 346   4                                      digs_buf[1][3]=16;
+ 347   4                                      digs_buf[1][4]=16;
+ 348   4                                      digs_buf[1][5]=16;
+ 349   4                                      digs_buf[1][6]=16;
+ 350   4                                      digs_buf[1][7]=16;
+ 351   4                                      
+ 352   4                                      digs_buf[2][2]=16;
+ 353   4                                      digs_buf[2][3]=16;
+ 354   4                                      digs_buf[2][4]=16;
+ 355   4                                      digs_buf[2][5]=16;
+ 356   4                                      digs_buf[2][6]=16;
+ 357   4                                      digs_buf[2][7]=16;
+ 358   4                                      
+ 359   4                                      digs_buf[3][1]=trig_count/10%10;
+ 360   4                                      digs_buf[3][2]=trig_count%10;
+ 361   4                                      digs_buf[3][3]=16;
+ 362   4                                      digs_buf[3][4]=16;
+ 363   4                                      digs_buf[3][5]=16;
+ 364   4                                      digs_buf[3][6]=16;
+C51 COMPILER V9.60.0.0   MAIN                                                              04/05/2025 13:11:53 PAGE 7   
+
+ 365   4                                      digs_buf[3][7]=16;
+ 366   4                              }
+ 367   3                              else
+ 368   3                              {
+ 369   4                                      digs_buf[1][2]=temperature_int_max/100%10;
+ 370   4                                      digs_buf[1][3]=temperature_int_max/10%10;
+ 371   4                                      digs_buf[1][4]=17;
+ 372   4                                      digs_buf[1][5]=temperature_int_avg/100%10;
+ 373   4                                      digs_buf[1][6]=temperature_int_avg/10%10+32;
+ 374   4                                      digs_buf[1][7]=temperature_int_avg%10;
+ 375   4                                      
+ 376   4                                      digs_buf[2][2]=shidu_max/100%10;
+ 377   4                                      digs_buf[2][3]=shidu_max/10%10;
+ 378   4                                      digs_buf[2][4]=17;
+ 379   4                                      digs_buf[2][5]=shidu_avg/100%10;
+ 380   4                                      digs_buf[2][6]=shidu_avg/10%10+32;
+ 381   4                                      digs_buf[2][7]=shidu_avg%10;
+ 382   4                                      
+ 383   4                                      digs_buf[3][1]=trig_count/10%10;
+ 384   4                                      digs_buf[3][2]=trig_count%10;
+ 385   4                                      digs_buf[3][3]=time_trig[0]/10%10;
+ 386   4                                      digs_buf[3][4]=time_trig[0]%10;
+ 387   4                                      digs_buf[3][5]=17;
+ 388   4                                      digs_buf[3][6]=time_trig[1]/10%10;
+ 389   4                                      digs_buf[3][7]=time_trig[1]%10;
+ 390   4                              }
+ 391   3                              digs_buf[4][2]=freq/100000%10;
+ 392   3                              digs_buf[4][3]=freq/10000%10;
+ 393   3                              digs_buf[4][4]=freq/1000%10;
+ 394   3                              digs_buf[4][5]=freq/100%10;
+ 395   3                              digs_buf[4][6]=freq/10%10;
+ 396   3                              digs_buf[4][7]=freq%10;
+ 397   3                              
+ 398   3      //                      digs_buf[3][2]=adc_read_level/100000%10;
+ 399   3      //                      digs_buf[3][3]=adc_read_level/10000%10;
+ 400   3      //                      digs_buf[3][4]=adc_read_level/1000%10;
+ 401   3      //                      digs_buf[3][5]=adc_read_level/100%10;
+ 402   3      //                      digs_buf[3][6]=adc_read_level/10%10;
+ 403   3      //                      digs_buf[3][7]=adc_read_level%10;
+ 404   3                              
+ 405   3      //                      digs_buf[4][6]=temp_param/10%10;
+ 406   3      //                      digs_buf[4][7]=temp_param%10;
+ 407   3                              
+ 408   3                              digs_buf[5][3]=temperature_int/100%10;
+ 409   3                              digs_buf[5][4]=temperature_int/10%10;
+ 410   3                              if(shidu!=0xff)
+ 411   3                              {
+ 412   4                                      digs_buf[5][6]=shidu/100%10;
+ 413   4                                      digs_buf[5][7]=shidu/10%10;
+ 414   4                              }
+ 415   3                              else
+ 416   3                              {
+ 417   4                                      digs_buf[5][6]=10;
+ 418   4                                      digs_buf[5][7]=10;
+ 419   4                              }
+ 420   3                              
+ 421   3                              digs_buf[6][0]=diaodian_count/10%10;
+ 422   3                              digs_buf[6][1]=diaodian_count%10;
+ 423   3                              digs_buf[6][2]=time_trig_clear[0]/10%10;
+ 424   3                              digs_buf[6][3]=time_trig_clear[0]%10;
+ 425   3                              digs_buf[6][4]=time_trig_clear[1]/10%10;
+ 426   3                              digs_buf[6][5]=time_trig_clear[1]%10;
+C51 COMPILER V9.60.0.0   MAIN                                                              04/05/2025 13:11:53 PAGE 8   
+
+ 427   3                              digs_buf[6][6]=time_trig_clear[2]/10%10;
+ 428   3                              digs_buf[6][7]=time_trig_clear[2]%10;
+ 429   3                              
+ 430   3                              digs_buf[7][1]=adc_read_level_pin3>=100?adc_read_level_pin3/100%10:16;
+ 431   3                              digs_buf[7][2]=adc_read_level_pin3>=10?adc_read_level_pin3/10%10:16;
+ 432   3                              digs_buf[7][3]=adc_read_level_pin3%10;
+ 433   3                              
+ 434   3                              digs_buf[7][4]=distance>=1000?distance/1000%10:16;
+ 435   3                              digs_buf[7][5]=distance>=100?distance/100%10:16;
+ 436   3                              digs_buf[7][6]=distance>=10?distance/10%10:16;
+ 437   3                              digs_buf[7][7]=distance%10;
+ 438   3                              
+ 439   3                              digs_buf[8][1]=position_x>=100?position_x/100%10:16;
+ 440   3                              digs_buf[8][2]=position_x>=10?position_x/10%10:16;
+ 441   3                              digs_buf[8][3]=position_x%10;
+ 442   3                              
+ 443   3                              digs_buf[8][5]=position_y>=100?position_y/100%10:16;
+ 444   3                              digs_buf[8][6]=position_y>=10?position_y/10%10:16;
+ 445   3                              digs_buf[8][7]=position_y%10;
+ 446   3                              
+ 447   3                              digs_buf[9][1]=relay_pwm_duty*10>=100?relay_pwm_duty*10/100%10:16;
+ 448   3                              digs_buf[9][2]=relay_pwm_duty*10>=10?relay_pwm_duty*10/10%10:16;
+ 449   3                              digs_buf[9][3]=relay_pwm_duty*10%10;
+ 450   3                              
+ 451   3                              digs_buf[9][5]=adc_read_level>=100?adc_read_level/100%10:16;
+ 452   3                              digs_buf[9][6]=adc_read_level>=10?adc_read_level/10%10:16;
+ 453   3                              digs_buf[9][7]=adc_read_level%10;
+ 454   3                              
+ 455   3                              
+ 456   3                              //led
+ 457   3                              if(screen==0)led_buf|=0x01;
+ 458   3                              else led_buf&=~0x01;
+ 459   3                              
+ 460   3                              if(screen==1)led_buf|=0x02;
+ 461   3                              else led_buf&=~0x02;
+ 462   3                              
+ 463   3                              if(screen==2)led_buf|=0x04;
+ 464   3                              else led_buf&=~0x04;
+ 465   3                              
+ 466   3                              if(temperature_int_last>temp_param*10)
+ 467   3                              {
+ 468   4                                      if(led_blink)
+ 469   4                                      led_buf|=0x08;
+ 470   4                                      else
+ 471   4                                      led_buf&=~0x08;
+ 472   4                              }
+ 473   3                              else led_buf&=~0x08;
+ 474   3                              
+ 475   3                      }
+ 476   2      
+ 477   2              }
+ 478   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   3714    ----
+   CONSTANT SIZE    =     50    ----
+   XDATA SIZE       =   ----      44
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----       3
+C51 COMPILER V9.60.0.0   MAIN                                                              04/05/2025 13:11:53 PAGE 9   
+
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
